@@ -1,0 +1,33 @@
+
+INTRUCCION                CODIGO MAQUINA
+
+ADDIU $v0 $zero 0x0000    0x24020000      //li $v0 0
+
+ADDIU $v0 $zero 0x000A    0x2402000A      //li $v0 10
+
+// de los dos li v0 vemos que solo debemos comparar '0x2402...'
+
+ADD $ra $ra $ra           0x03FFF820      //00000011111111111111100000100000
+
+ADD $t0 $t1 $t2           0x012A4020      //00000001001010100100000000100000
+
+// de los dos add's anteriores vemos que solo
+// debemos comparar con '000000...00000100000'
+
+SYSCALL                   0X0000000C      //00000000000000000000000000001100
+
+nop                       0x00000000     //no hace nada
+
+ADDI $at $zero 0x2A6F     0x20012A6F     //Esta NO la entiendo para que la usan ellos.
+
+break 0x10                0x0000040d     //Poner donde hay syscall 10.
+
+break 0x20                0x0000080d     //Poner donde hay add.
+
+BEQ $t0 $t1 0x0000        0x11090000    //OP...='000100...' al pricipio (a la izq). 0x10000000 en hex.
+// El offset esta en la segunda mitad del code.
+// Si es caso uno offset-=4; 
+// en general TA = PC + 4 * (offset-1).
+
+
+

@@ -73,8 +73,7 @@ s2:	.word 0
 # Because we are running in the kernel, we can use $k0/$k1 without
 # saving their old values.
 
-# This is the exception vector address for MIPS-1 (R2000):
-#	.ktext 0x80000080
+
 # This is the exception vector address for MIPS32:
 	.ktext 0x80000180
 # Select the appropriate one for the mode in which MIPS is compiled.
@@ -156,64 +155,100 @@ ret:
 # Return from exception on MIPS32:
 	eret
 
-# Return sequence for MIPS-I (R2000):
-#	rfe			# Return from exception handler
-				# Should be in jr's delay slot
-#	jr $k0
-#	 nop
 
 
-
-# Standard startup code.  Invoke the routine "main" with arguments:
-#	main(argc, argv, envp)
-#
-	.text
-	.globl __start
-#	.globl main
-__start:
-	lw $a0 0($sp)		# argc
-	addiu $a1 $sp 4		# argv
-	addiu $a2 $a1 4		# envp
-	sll $v0 $a0 2
-	addu $a2 $a2 $v0
-	jal main
-	nop
-
-	li $v0 10
-	syscall			# syscall 10 (exit)
+###################################################################################
 
 	.globl __eoth
 __eoth:
 
-
-	################################################################
-	##
-	## El siguiente bloque debe ser usado para la inicialización
-	## de las estructuras de datos que Ud. considere necesarias
-	## 
-	## Las etiquetas QUANTUM, PROGS, NUM_PROGS no deben bajo 
-	## ABSOLUTAMENTE NINGUNA RAZON ser definidas en este archivo
-	##
-	################################################################
-	
+###################################################################################	
 	.data
 
-	################################################################
-	##
-	## El siguiente bloque debe ser usado para la inicialización
-	## del planificador que Ud. considere necesarias, 
-        ## instrumentación de los programas
-        ## activación de interrupciones
-	## inicialización de las estructuras
-	## el mecanismo que comience la ejecución del primer programa
-	################################################################
+	
+N_RunningProg:
+	.word 0			# Numero de programas siendo ejecutados	
+
+PROG_DATA:
+	.word 0			# Direccion de los datos de registros del programa actual
+
+FirstProg:
+	.word 0			# Direccion de los datos del primer programa del arreglo PROGS
+	
+	.globl main	
+
+###################################################################################
+
+########################### main ##################################################
 
 	.text
-	.globl main
-main:
-	lw $t1, PROGS 
-	jr $t1
 	
-fin:
-	li $v0 10
-	syscall			# syscall 10 (exit)
+main:
+	
+sw $zero, 0xffff0000	# Prohibo interrupciones de teclado
+
+li $t0, 0x00
+mtc0 $t0, $12	# Ignoro interrupciones  #es esto necesario?
+
+lw $t0, NUM_PROGS	# En t1 esta la cantidad de programas.
+
+mul $t0, $t0, 136
+li $v0, 9
+syscall	
+
+lw $t0 ($s0)
+sw $t0 ($v0)			# La dir del primer programa queda en su pagina
+sw $v0 RegActual		# La pagina actual (RegActual) es del primer programa
+sw $v0 PrimeroDeTodos
+
+move $t1 $v0			# Preparo al iterador de la estructura
+move $s1 $s0			# s1 = PROGS, preparo al iterador del loopInstrumentador
+lw $t2 NUM_PROGS		# Preparo al contador del main
+lw $s2 NUM_PROGS		# Preparo al contador del loopInstrumentador
+
+addi $s3 $zero 1	# Preparo al contador de numProg
+
+
+# Comienzo a instrumentar y 
+# armar las paginas de cada programa
+#
+
+loopLista:
+addi $t1 $t1 136		# Voy a donde quedaran los registros del siguiente programa
+addi $s0 $s0 4			
+lw $t3 ($s0)			# dirPrograma en t3
+sw $t3 ($t1)			# Guardo la direccion del programa en su pagina
+sw $s3 4($t1)			# Asigno numero de programa
+sw $t3 8($t1)			# Guardo PC en pagina
+addi $s3 $s3 1			# Aumento numero de programa
+addi $t2 $t2 -1			# Decremento el contador del main
+beq $t2 1 loopInstru		# Termine de guardar cada uno en su pagina? Instrumento
+b loopLista
+
+loopInstru:
+lw $a0 ($s1)			# Carga en a0 el programa a instrumentar
+lw $a1 4($s1)			# Y en a1 el segundo, para finalizar ciclos
+
+addi $sp $sp -16		# Guardo registros dependientes del llamador			
+sw $s0 4($sp)
+sw $s1 8($sp)
+sw $s2 12($sp)
+
+move $s0 $zero			# Necesitamos estos dos registros limpios
+move $s1 $zero
+
+jal instrumentador		# Instrumento
+lw $s2 12($sp)
+lw $s1 8($sp)
+lw $s0 4($sp)
+addi $sp $sp 16			# Recupero registros
+
+addi $s1 $s1 4			# s1 tiene al siguiente programa
+addi $s2 $s2 -1			# Decremento el contador hasta llegar a 1
+
+lw $s3 RegActual		# Actualizo RegActual con la pagina del programa siguiente
+addi $s3 $s3 136
+sw $s3 RegActual
+
+beq $s2 0 planificador		# Si ya instrumente todos, paso al planificador
+b loopInstru

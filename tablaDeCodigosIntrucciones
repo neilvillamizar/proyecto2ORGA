@@ -29,5 +29,24 @@ BEQ $t0 $t1 0x0000        0x11090000    //OP...='000100...' al pricipio (a la iz
 // Si es caso uno offset-=4; 
 // en general TA = PC + 4 * (offset-1).
 
+/////////////////////////////////////////////////////////////
+REGISTROS COPROCESADOR 0
+registro      nro         name and function
+
+$12            12         Status (se puede modificar) //interrup on/off bit 0. // user mode on/off bit . //interrup mask on/off bit from 8 to 15. bit 8 for keyboard interrupt.
+
+$13            13         Cause register (only read) //exception/interrupt code at bits 2-6. code 0 for interrupt. //if interrupt, 'pending interrupt' bits have the interrupt code, bits 8-15.
+
+$14            14         EPC (guarda el pc (la direccion donde se dio la excepcion o interrupcion))
+
+$8              8         vaddr (Memory address of the violation )
 
 
+Para permitir interrupciones de teclado se debe setear el bit 1 de la posicion 0xffff0000 a 1. Esta posicion esta el 'receiver control'.
+
+El ascci value de la tecla presionada se guarda en 'receiver data' en la posicion de memoria 0xffff0004, en los primeros 8 bits (1 byte).
+
+codigo ascii s: ...
+codigo ascii p: ...
+
+NOTA: averiguar que code queda en $13 si haces break.

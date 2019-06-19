@@ -6,8 +6,8 @@
 # 2 da posicion de la PROG_DATA:   direccion de la ultima instruccion del programa i
 # 3 era posicion de la PROG_DATA:  Pseudo $pc del programa i.
 # demas posiciones de la PROG_DATA: los otros 31 registros del programa i. (por ahora vacias)
-
-
+.data
+.text
 ###################### Instrumentador (instruccion * program)  #######################
 #####################                           $a0,           ######################
 Instrumentador:

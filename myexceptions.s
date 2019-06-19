@@ -185,70 +185,78 @@ FirstProg:
 	
 main:
 	
-sw $zero, 0xffff0000	# Prohibo interrupciones de teclado
+sw $zero, 0xffff0000		# Prohibo interrupciones de teclado
 
 li $t0, 0x00
-mtc0 $t0, $12	# Ignoro interrupciones  #es esto necesario?
+mtc0 $t0, $12			# Ignoro interrupciones  #es esto necesario?
 
-lw $t0, NUM_PROGS	# En t1 esta la cantidad de programas.
-
-mul $t0, $t0, 136
+lw $t0, NUM_PROGS		# En t0 esta la cantidad de programas.
+mul $t0, $t0, 136		# Pido memoria dinamica para guardar los datos de cada programa.
 li $v0, 9
 syscall	
 
-lw $t0 ($s0)
-sw $t0 ($v0)			# La dir del primer programa queda en su pagina
-sw $v0 RegActual		# La pagina actual (RegActual) es del primer programa
-sw $v0 PrimeroDeTodos
+sw $v0 PROG_DATA		# Los datos de programa apuntados actualmente son del primer programa
+sw $v0 FirstProg
 
-move $t1 $v0			# Preparo al iterador de la estructura
-move $s1 $s0			# s1 = PROGS, preparo al iterador del loopInstrumentador
-lw $t2 NUM_PROGS		# Preparo al contador del main
-lw $s2 NUM_PROGS		# Preparo al contador del loopInstrumentador
+#############
 
-addi $s3 $zero 1	# Preparo al contador de numProg
+li $t0, 0			# Contador del programa por el que se va
+la $t1, PROGS			# direccion donde esta la direccion del primer programa.
+lw $t2, NUM_PROGS		# Numero de programas.
+lw $t3, FirstProg		# Direccion para guardar datos del primer programa
 
+# Comienzo a guardar los datos basicos de cada programa
+loopProgData:
 
-# Comienzo a instrumentar y 
-# armar las paginas de cada programa
-#
+beq $t0, $t2, instrAll		# Si ya guarde los datos basicos de cada programa, comienzo a instrumentar los programas.
 
-loopLista:
-addi $t1 $t1 136		# Voy a donde quedaran los registros del siguiente programa
-addi $s0 $s0 4			
-lw $t3 ($s0)			# dirPrograma en t3
-sw $t3 ($t1)			# Guardo la direccion del programa en su pagina
-sw $s3 4($t1)			# Asigno numero de programa
-sw $t3 8($t1)			# Guardo PC en pagina
-addi $s3 $s3 1			# Aumento numero de programa
-addi $t2 $t2 -1			# Decremento el contador del main
-beq $t2 1 loopInstru		# Termine de guardar cada uno en su pagina? Instrumento
-b loopLista
+lw $a0 ($t1)			# direccion de la primera instruccion del programa esta en a0
 
-loopInstru:
-lw $a0 ($s1)			# Carga en a0 el programa a instrumentar
-lw $a1 4($s1)			# Y en a1 el segundo, para finalizar ciclos
+jal LastIntruccion		# En v0 queda la direccion de la ultima instruccion del programa
 
-addi $sp $sp -16		# Guardo registros dependientes del llamador			
-sw $s0 4($sp)
-sw $s1 8($sp)
-sw $s2 12($sp)
+sw $t0 ($t3)			# Guardo el indice del programa.
+sw $v0 4($t3)			# Guardo la direccion de la ultima instruccion del programa
+sw $a0 8($t3)			# Guardo PC del programa (inicialmente es igual a la direccion de la primera instruccion)
 
-move $s0 $zero			# Necesitamos estos dos registros limpios
-move $s1 $zero
+addi $t0 $t0 1			# Incremento el indice del programa
+addi $t3 $t3 136		# Apunta a donde se guardaran los datos del siguiente programa
+addi $t1 $t1 4			# Avanzo al siguiente programa en PROGS (direccion de la primera instruccion de ese programa)
+b loopProgData
+
+###########################
+
+la $t0, PROGS			# direccion donde esta la direccion del primer programa.
+lw $t1, NUM_PROGS		# Numero de programas.
+
+# Itero por los programas en PROGS para instrumentar cada uno.
+instrAll:
+
+lw $a0 ($t0)			# Cargo en a0 la direccion del programa a instrumentar
+
+# Convenciones
+addi $sp, $sp, -8				
+sw $t0, 4($sp)
+sw $t1, 8($sp)
+###############
 
 jal instrumentador		# Instrumento
-lw $s2 12($sp)
-lw $s1 8($sp)
-lw $s0 4($sp)
-addi $sp $sp 16			# Recupero registros
 
-addi $s1 $s1 4			# s1 tiene al siguiente programa
-addi $s2 $s2 -1			# Decremento el contador hasta llegar a 1
+# Convenciones
+lw $t1, 8($sp)
+lw $t0, 4($sp)
+addi $sp, $sp, 8
+###############
 
-lw $s3 RegActual		# Actualizo RegActual con la pagina del programa siguiente
-addi $s3 $s3 136
-sw $s3 RegActual
+addi $t0, $t0, 4			# Avanzo al siguiente programa en PROGS (direccion de la primera instruccion de ese programa)
+addi $t1, $t1, -1			# Decremento el contador.
 
-beq $s2 0 planificador		# Si ya instrumente todos, paso al planificador
-b loopInstru
+lw $t2, PROG_DATA		# Actualizo PROG_DATA
+addi $t2, $t2, 136		# Para que apunte a los datos del programa siguiente
+sw $t2, PROG_DATA
+
+beq $t1, 0, planificador		# Si ya instrumente todos los programas, llamo al planificador
+b instrAll
+
+#######################################
+
+

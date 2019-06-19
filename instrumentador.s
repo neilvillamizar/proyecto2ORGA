@@ -10,7 +10,7 @@
 .text
 ###################### Instrumentador (instruccion * program)  #######################
 #####################                           $a0,           ######################
-Instrumentador:
+instrumentador:
 
 #convenciones:
 addi $sp $sp -8	

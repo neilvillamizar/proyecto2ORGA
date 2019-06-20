@@ -59,5 +59,5 @@ p3:
 	li $v0, 10
 	syscall
 	
-	#.include "myexceptions.s"
-	.include "v.s"
+	.include "myexceptions.s"
+

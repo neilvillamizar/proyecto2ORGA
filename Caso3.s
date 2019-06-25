@@ -1,6 +1,6 @@
 #Programa:	 myprogs.s
 #Autor:	 profs del taller de organizaciòn del computador
-#Fecha:	 Junio 2019
+#Fecha:	11 Nov 2017
 
 # Obs: Esto es un ejemplo de como podría ser un programa principal a
 #	usarse en el proyecto.
@@ -18,22 +18,27 @@ NUM_PROGS:	.word 3
 PROGS:		.word p1, p2, p3
 QUANTUM: 	.word 5   # En segundos (aproximadamente)
 	
-m1:	.asciiz "p1\n"
-m2:	.asciiz "p2\n" 
-m3:	.asciiz "p3\n"
+m1:	.asciiz "p1 "
+m2:	.asciiz "p2 " 
+m3:	.asciiz "p3 "
 	
 	.text
-
 
 p1:
 	li $v0 4
 	la $a0 m1
-	syscall
-	
-	b p1
+	syscall	
 
 	li $v0, 10
         syscall
+        nop
+        nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
 	
 
 p2:	
@@ -41,22 +46,40 @@ p2:
 	la $a0 m2
 	syscall
 	
-	b p2
+	beq $zero $zero p2
 
         add $t1, $t1, $t1
 	
 	li $v0, 10
 	syscall
 	nop
-
-p3:	
+	nop
+	nop
+	nop
+	nop
+	nop
+	
+p3:	beq $zero $zero p3Cont
+	li $v0 10
+	syscall
+	
+p3Cont:
 	li $v0 4
 	la $a0 m3
 	syscall
+	
+	add $t1 $t2 $t3
+	add $t1 $t2 $t3
 
-	b p3
+	beq $zero $zero p3
 
 	li $v0, 10
 	syscall
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
 	
 	.include "myexceptions.s"

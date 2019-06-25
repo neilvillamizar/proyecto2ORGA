@@ -1,3 +1,14 @@
+
+#########################################################################################################
+
+# Proyecto 2 de Organizacion del computador. Trimestre Enero-Marzo 2019.
+# Instrumentador y Planificador.
+# Autores:
+# Neil Villamizar   (15-11523)
+# Samuel Fagundez   (15-10460)
+
+########################################################################################################
+
 # SPIM S20 MIPS simulator.
 # The default exception handler for spim.
 #
@@ -103,20 +114,20 @@ msg7:	.asciiz "\tNumero de add: "
 
 	# Print information about exception.
 	#
-	li $v0 4		# syscall 4 (print_str)
-	la $a0 __m1_
-	syscall
+	#li $v0 4		# syscall 4 (print_str)
+	#la $a0 __m1_
+	#syscall
 
-	li $v0 1		# syscall 1 (print_int)
-	srl $a0 $k0 2		# Extract ExcCode Field
-	andi $a0 $a0 0x1f
-	syscall
+	#li $v0 1		# syscall 1 (print_int)
+	#srl $a0 $k0 2		# Extract ExcCode Field
+	#andi $a0 $a0 0x1f
+	#syscall
 
-	li $v0 4		# syscall 4 (print_str)
-	andi $a0 $k0 0x3c
-	lw $a0 __excp($a0)
-	nop
-	syscall
+	#li $v0 4		# syscall 4 (print_str)
+	#andi $a0 $k0 0x3c
+	#lw $a0 __excp($a0)
+	#nop
+	#syscall
 
 	bne $k0 0x18 ok_pc	# Bad PC exception requires special checks
 	nop
@@ -130,9 +141,9 @@ msg7:	.asciiz "\tNumero de add: "
 	syscall
 
 ok_pc:
-	li $v0 4		# syscall 4 (print_str)
-	la $a0 __m2_
-	syscall
+	#li $v0 4		# syscall 4 (print_str)
+	#la $a0 __m2_
+	#syscall
 
 	srl $a0 $k0 2		# Extract ExcCode Field
 	andi $a0 $a0 0x1f
@@ -341,6 +352,7 @@ syscall
 
 lw $a0 PROG_DATA		
 lw $a0 ($a0)			# "... i..."
+addi $a0, $a0, -1
 li $v0 1			
 syscall
 
@@ -401,7 +413,7 @@ mfc0 $k0 $12		# Set Status register
 ori  $k0 0x11		# Interrupts enabled and user mode on
 mtc0 $k0 $12
 
-li $k0 0x10
+li $k0 0x12
 sw $k0 0xffff0000	# Permito interrupciones de teclado
 
 # Return from exception on MIPS32:
@@ -429,8 +441,11 @@ ret:
 	mtc0 $0 $13		# Clear Cause register
 
 	mfc0 $k0 $12		# Set Status register
-	ori  $k0 0x1		# Interrupts enabled
+	ori  $k0 0x11		# Interrupts enabled
 	mtc0 $k0 $12
+	
+	li $k0 0x12
+	sw $k0 0xffff0000	# Permito interrupciones de teclado
 
 # Return from exception on MIPS32:
 	eret
@@ -465,7 +480,11 @@ startInstrument:
 	.asciiz "\nInstrumentando...\n"
 
 endInstrumentStartPlan:
-	.asciiz "Programas instrumentados.\n Ejecutando programas... \n"
+	.asciiz "Programas instrumentados.\nEjecutando programas... \n"
+	
+m0:
+	.asciiz "El numero de programas es cero. Se apaga la maquina.\n"
+	
 	
 	.globl main	
 
@@ -480,13 +499,15 @@ main:
 sw $zero, 0xffff0000		# Prohibo interrupciones de teclado
 
 li $t0, 0x00
-mtc0 $t0, $12			# Ignoro interrupciones  #es esto necesario?
+mtc0 $t0, $12			# Ignoro interrupciones
 
 lw $t0, NUM_PROGS		# En t0 esta la cantidad de programas.
 sw $t0, N_RunningProg		# Inicialmente ningun programa ha terminado su ejecucion
 mul $t0, $t0, 136		# Pido memoria dinamica para guardar los datos de cada programa.
 li $v0, 9
-syscall	
+syscall
+
+beqz $t0, zeroProgExit		# Se termina si no hay programas (NUM_PROGS == 0)
 
 sw $v0 PROG_DATA		# Los datos de programa apuntados actualmente son del primer programa
 sw $v0 FirstProg
@@ -501,7 +522,7 @@ lw $t3, FirstProg		# Direccion para guardar datos del primer programa
 # Comienzo a guardar los datos basicos de cada programa
 loopProgData:
 
-bgt $t0, $t2, instrAll		# Si ya guarde los datos basicos de cada programa, comienzo a instrumentar los programas.
+bgt $t0, $t2, preInstrAll	# Si ya guarde los datos basicos de cada programa, comienzo a instrumentar los programas.
 
 lw $a0 ($t1)			# direccion de la primera instruccion del programa esta en a0
 
@@ -514,7 +535,7 @@ sw $t3, 16($sp)
 ###############
 
 la $t0, LastInstruccion
-jalr $t0		# En v0 queda la direccion de la ultima instruccion del programa
+jalr $t0			# En v0 queda la direccion de la ultima instruccion del programa
 
 # Convenciones
 lw $t3, 16($sp)
@@ -539,6 +560,7 @@ b loopProgData
 
 ###########################
 
+preInstrAll:
 la $a0, startInstrument 	# "Instrumentando"
 li $v0, 4
 syscall
@@ -549,6 +571,8 @@ lw $t1, NUM_PROGS		# Numero de programas.
 # Itero por los programas en PROGS para instrumentar cada uno.
 instrAll:
 
+beq $t1, 0, planificador	# Si ya instrumente todos los programas, llamo al planificador
+
 lw $a0 ($t0)			# Cargo en a0 la direccion del programa a instrumentar
 
 # Convenciones
@@ -558,7 +582,7 @@ sw $t1, 8($sp)
 ###############
 
 la $t0, instrumentador
-jalr $t0		# Instrumento
+jalr $t0			# Instrumento
 
 # Convenciones
 lw $t1, 8($sp)
@@ -566,14 +590,13 @@ lw $t0, 4($sp)
 addi $sp, $sp, 8
 ###############
 
-addi $t0, $t0, 4			# Avanzo al siguiente programa en PROGS (direccion de la primera instruccion de ese programa)
-addi $t1, $t1, -1			# Decremento el contador.
+addi $t0, $t0, 4		# Avanzo al siguiente programa en PROGS (direccion de la primera instruccion de ese programa)
+addi $t1, $t1, -1		# Decremento el contador.
 
 lw $t2, PROG_DATA		# Actualizo PROG_DATA
 addi $t2, $t2, 136		# Para que apunte a los datos del programa siguiente
 sw $t2, PROG_DATA
 
-beq $t1, 0, planificador		# Si ya instrumente todos los programas, llamo al planificador
 b instrAll
 
 ###########################################################################
@@ -594,6 +617,8 @@ syscall
 lw $t3, FirstProg		# Direccion para guardar datos del primer programa
 sw $t3 PROG_DATA		# En PROG_DATA esta la direccion de los datos del primer programa.
 
+lw $k0, PROGS
+
 li $t0 0x10
 sw $t0 0xffff0000		# Permito interrupciones de teclado
 	
@@ -608,7 +633,19 @@ li $t1, 0
 li $t2, 0
 li $t3, 0
 
-j p1
+#j p1
+jr $k0
+
+##################################################################################################
+
+zeroProgExit:
+
+li $v0 4
+la $a0 m0		# "El Numero de programas es cero..."
+syscall
+
+li $v0 10
+syscall
 
 ##################################################################################################
 

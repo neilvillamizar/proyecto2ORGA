@@ -1,4 +1,6 @@
 # Retorna la ultima instruccion de un programa (syscall 10)
+# Neil Villamizar   (15-11523)
+# Samuel Fagundez   (15-10460)
 
 ##################### instruccion  LastInstruccion(instruccion * program) ############################
 ####################     ($v0)                                   ($a0)    ############################

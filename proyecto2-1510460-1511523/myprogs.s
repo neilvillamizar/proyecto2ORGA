@@ -60,4 +60,3 @@ p3:
 	syscall
 	
 	.include "myexceptions.s"
-

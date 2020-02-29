@@ -1,2 +1,2 @@
 # proyecto2ORGA
-Proyecto 2 de Organizacion del computador.
+Simon Bolivar University project. Second project of Computer Architecture and Organization. A process scheduler simulated with interruptions and exceptions in MIPS.
